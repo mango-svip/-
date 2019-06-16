@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -23,26 +22,20 @@ func main() {
 		CharsetDetectDisabled:true,
 	}).Start()
 
-	group.Wait()
 }
 var dir int = 0
-var group = sync.WaitGroup{}
 
 func quotesParse(r *geziyor.Response) {
 	children := r.DocHTML.Find("div.postlist").Find("ul").Children()
 	children.Each(func(_ int, s *goquery.Selection) {
-
-		log.Println(fmt.Sprintf("爬取专辑第 %d 套", dir) )
-
-		val, _ := s.Find("a").Attr("href")
-		spiderImageList(val, r)
-
+			log.Println(fmt.Sprintf("爬取专辑第 %d 套", dir) )
+			val, _ := s.Find("a").Attr("href")
+			spiderImageList(val, r)
 	})
 
 }
 
 func spiderImageList(val string, r *geziyor.Response) {
-	group.Add(1)
 
 	r.Geziyor.Get(val, func(resp *geziyor.Response) {
 
@@ -58,21 +51,17 @@ func spiderImageList(val string, r *geziyor.Response) {
 		picBase := pic[point+4:point2-2]
 
 		dir += 1;
-
-
-		go func (){
-			// 爬取 1- 50 页 每页一张图
-			for i := 1; i< 51 ; i++ {
-				if i < 10 {
-					req.URL.Path  = fmt.Sprintf(picBase + "0" + "%d.jpg", i);
-				} else {
-					req.URL.Path  = fmt.Sprintf(picBase + "%d.jpg", i);
-				}
-
-				r.Geziyor.Do(&geziyor.Request{Request: req}, downLoad)
+		// 爬取 1- 50 页 每页一张图
+		for i := 1; i< 51 ; i++ {
+			if i < 10 {
+				req.URL.Path  = fmt.Sprintf(picBase + "0" + "%d.jpg", i);
+			} else {
+				req.URL.Path  = fmt.Sprintf(picBase + "%d.jpg", i);
 			}
-			defer group.Done()
-		}()
+
+			r.Geziyor.Do(&geziyor.Request{Request: req}, downLoad)
+		}
+
 
 
 
